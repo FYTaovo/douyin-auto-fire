@@ -147,6 +147,15 @@ async def test_search_result_uses_name_node_content_when_inner_text_has_extra_ui
 
 
 @pytest.mark.asyncio
+async def test_search_result_matches_nonbreaking_space_in_same_name() -> None:
+    page, buttons = _search_page(["嘿嘿(º﹃º\u00a0)"])
+
+    result = await DouyinChat(page)._search_result("嘿嘿(º﹃º )")
+
+    assert result is buttons[0]
+
+
+@pytest.mark.asyncio
 async def test_search_result_reveals_chat_button_on_hover() -> None:
     page, buttons = _search_page(["花流水"])
     item = page.locator('[class*="SearchPanelitembox"], [class*="SearchPanelitem-box"], [class*="SearchPanelitem_box"]').nth(0)

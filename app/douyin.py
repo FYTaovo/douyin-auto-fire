@@ -345,7 +345,7 @@ async def _has_exact_text(locators: Locator, expected: str) -> bool:
 async def _text_equals(locator: Locator, expected: str) -> bool:
     try:
         content = await locator.text_content(timeout=500)
-        return content is not None and content.strip() == expected
+        return content is not None and _normalize_display_name(content) == _normalize_display_name(expected)
     except Exception:
         return False
 
@@ -360,8 +360,8 @@ _GROUP_COUNT_SUFFIX_RE_TEMPLATE = r"{name}\s*[\(（]\s*\d+\s*[\)）]"
 
 
 def _group_count_suffix_matches(actual: str, expected: str) -> bool:
-    actual = actual.strip()
-    expected = expected.strip()
+    actual = _normalize_display_name(actual)
+    expected = _normalize_display_name(expected)
     if actual == expected:
         return True
     pattern = _GROUP_COUNT_SUFFIX_RE_TEMPLATE.format(name=re.escape(expected))
@@ -376,6 +376,12 @@ async def _group_name_matches(locator: Locator, expected: str) -> bool:
         )
     except Exception:
         return False
+
+
+def _normalize_display_name(value: str) -> str:
+    # Browsers can render nonbreaking spaces in nicknames as ordinary spaces.
+    # Keep punctuation and all non-whitespace characters exact.
+    return re.sub(r"\s+", " ", value.strip())
 
 
 async def first_visible(page: Page, selectors: tuple[str, ...], timeout_ms: int = 15_000) -> Locator:
