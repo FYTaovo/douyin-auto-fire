@@ -67,6 +67,8 @@ class DouyinChat:
             try:
                 counts = await self.page.evaluate("""target => {
                     const titles = Array.from(document.querySelectorAll('[class*="conversationConversationItemtitle"], [class*="ConversationItemtitle"], [class*="SearchPanelitemtitle"], [class*="SearchPanelitemname"]'));
+                    const searchTitles = Array.from(document.querySelectorAll('[class*="SearchPanelitemtitle"], [class*="SearchPanelitemname"]'));
+                    const buttons = Array.from(document.querySelectorAll('[class*="SearchPanelitemchat_btn"]'));
                     const normalize = value => value.trim().replace(/\\s+/g, ' ');
                     const matched = titles.filter(el => normalize(el.textContent || '') === normalize(target));
                     return {
@@ -76,6 +78,8 @@ class DouyinChat:
                         conversation_rows: document.querySelectorAll('[data-e2e="conversation-item"], [class*="conversationConversationItem"], [class*="ConversationItem"]').length,
                         matching_title_nodes: matched.length,
                         visible_matching_titles: matched.filter(el => el.getClientRects().length > 0).length,
+                        matching_search_titles: searchTitles.filter(el => normalize(el.textContent || '') === normalize(target)).length,
+                        visible_chat_buttons: buttons.filter(el => el.getClientRects().length > 0).length,
                         filled_search_inputs: Array.from(document.querySelectorAll('input[placeholder*="搜索"]')).filter(el => el.value && el.value.length > 0).length,
                     };
                 }""", name)
@@ -120,8 +124,11 @@ class DouyinChat:
                 continue
             button = item.locator('[class*="SearchPanelitemchat_btn"]').first
             try:
-                if await button.count() and await button.is_visible():
-                    return button
+                if await button.count():
+                    if not await button.is_visible():
+                        await item.hover()
+                    if await button.is_visible():
+                        return button
             except Exception:
                 continue
 
@@ -132,8 +139,11 @@ class DouyinChat:
                 continue
             button = item.locator('[class*="SearchPanelitemchat_btn"]').first
             try:
-                if await button.count() and await button.is_visible():
-                    return button
+                if await button.count():
+                    if not await button.is_visible():
+                        await item.hover()
+                    if await button.is_visible():
+                        return button
             except Exception:
                 continue
 

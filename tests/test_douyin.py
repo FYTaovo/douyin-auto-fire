@@ -134,6 +134,19 @@ async def test_search_result_keeps_normal_exact_match_working() -> None:
 
 
 @pytest.mark.asyncio
+async def test_search_result_reveals_chat_button_on_hover() -> None:
+    page, buttons = _search_page(["花流水"])
+    item = page.locator('[class*="SearchPanelitembox"], [class*="SearchPanelitem-box"], [class*="SearchPanelitem_box"]').nth(0)
+    item.hover = AsyncMock()
+    buttons[0].is_visible = AsyncMock(side_effect=[False, True])
+
+    result = await DouyinChat(page)._search_result("花流水")
+
+    assert result is buttons[0]
+    item.hover.assert_awaited_once()
+
+
+@pytest.mark.asyncio
 async def test_search_result_accepts_group_count_suffix() -> None:
     # Group chats render as "<name>(<member count>)" in the search panel, e.g.
     # target "4161" is displayed as "4161(7)". The strict exact match alone would
