@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import re
 
 from playwright.async_api import Locator, Page
@@ -14,7 +13,6 @@ class PageOperationError(RuntimeError):
 
 
 RETRY_DELAY_MS = 3_000
-LOGGER = logging.getLogger("douyin_sender")
 
 
 class DouyinChat:
@@ -62,41 +60,6 @@ class DouyinChat:
             if result is not None:
                 break
         if result is None:
-            # Counts only: never place the friend name, page text or chat content
-            # in logs from a public GitHub Actions repository.
-            try:
-                counts = await self.page.evaluate("""target => {
-                    const titles = Array.from(document.querySelectorAll('[class*="conversationConversationItemtitle"], [class*="ConversationItemtitle"], [class*="SearchPanelitemtitle"], [class*="SearchPanelitemname"]'));
-                    const searchTitles = Array.from(document.querySelectorAll('[class*="SearchPanelitemtitle"], [class*="SearchPanelitemname"]'));
-                    const buttons = Array.from(document.querySelectorAll('[class*="SearchPanelitemchat_btn"]'));
-                    const normalize = value => value.trim().replace(/\\s+/g, ' ');
-                    const matched = titles.filter(el => normalize(el.textContent || '') === normalize(target));
-                    const matchingSearch = searchTitles.filter(el => normalize(el.textContent || '') === normalize(target));
-                    const classChain = el => {
-                        const chain = [];
-                        for (let node = el, depth = 0; node && depth < 5; node = node.parentElement, depth++) {
-                            chain.push(String(node.className || '').split(/\\s+/).filter(value => value.includes('SearchPanel')).join(' ').slice(0, 90));
-                        }
-                        return chain;
-                    };
-                    return {
-                        search_rows: document.querySelectorAll('[class*="SearchPanelitembox"], [class*="SearchPanelitem-box"], [class*="SearchPanelitem_box"]').length,
-                        search_panel_nodes: document.querySelectorAll('[class*="SearchPanel"]').length,
-                        chat_buttons: document.querySelectorAll('[class*="SearchPanelitemchat_btn"]').length,
-                        conversation_rows: document.querySelectorAll('[data-e2e="conversation-item"], [class*="conversationConversationItem"], [class*="ConversationItem"]').length,
-                        matching_title_nodes: matched.length,
-                        visible_matching_titles: matched.filter(el => el.getClientRects().length > 0).length,
-                        matching_search_titles: matchingSearch.length,
-                        inner_text_exact: matchingSearch.filter(el => normalize(el.innerText || '') === normalize(target)).length,
-                        title_class_chain: matchingSearch.slice(0, 1).map(classChain),
-                        button_class_chain: buttons.slice(0, 1).map(classChain),
-                        visible_chat_buttons: buttons.filter(el => el.getClientRects().length > 0).length,
-                        filled_search_inputs: Array.from(document.querySelectorAll('input[placeholder*="搜索"]')).filter(el => el.value && el.value.length > 0).length,
-                    };
-                }""", name)
-                LOGGER.warning("好友搜索安全诊断（仅元素数量）: %s", counts)
-            except Exception:
-                LOGGER.warning("好友搜索安全诊断无法读取")
             raise PageOperationError("搜索不到目标好友")
         await result.click(force=True)
         await self._confirm_opened(name)
