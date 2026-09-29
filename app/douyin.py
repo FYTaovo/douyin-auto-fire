@@ -344,7 +344,8 @@ async def _has_exact_text(locators: Locator, expected: str) -> bool:
 
 async def _text_equals(locator: Locator, expected: str) -> bool:
     try:
-        return (await locator.inner_text(timeout=500)).strip() == expected
+        content = await locator.text_content(timeout=500)
+        return content is not None and content.strip() == expected
     except Exception:
         return False
 
@@ -369,8 +370,9 @@ def _group_count_suffix_matches(actual: str, expected: str) -> bool:
 
 async def _group_name_matches(locator: Locator, expected: str) -> bool:
     try:
+        content = await locator.text_content(timeout=500)
         return _group_count_suffix_matches(
-            await locator.inner_text(timeout=500), expected
+            content or "", expected
         )
     except Exception:
         return False
