@@ -54,12 +54,19 @@ class DouyinChat:
             # Counts only: never place the friend name, page text or chat content
             # in logs from a public GitHub Actions repository.
             try:
-                counts = await self.page.evaluate("""() => ({
-                    search_rows: document.querySelectorAll('[class*="SearchPanelitembox"], [class*="SearchPanelitem-box"], [class*="SearchPanelitem_box"]').length,
-                    search_panel_nodes: document.querySelectorAll('[class*="SearchPanel"]').length,
-                    chat_buttons: document.querySelectorAll('[class*="SearchPanelitemchat_btn"]').length,
-                    conversation_rows: document.querySelectorAll('[data-e2e="conversation-item"], [class*="conversationConversationItem"], [class*="ConversationItem"]').length
-                })""")
+                counts = await self.page.evaluate("""target => {
+                    const titles = Array.from(document.querySelectorAll('[class*="conversationConversationItemtitle"], [class*="ConversationItemtitle"], [class*="SearchPanelitemtitle"], [class*="SearchPanelitemname"]'));
+                    const normalize = value => value.trim().replace(/\\s+/g, ' ');
+                    const matched = titles.filter(el => normalize(el.textContent || '') === normalize(target));
+                    return {
+                        search_rows: document.querySelectorAll('[class*="SearchPanelitembox"], [class*="SearchPanelitem-box"], [class*="SearchPanelitem_box"]').length,
+                        search_panel_nodes: document.querySelectorAll('[class*="SearchPanel"]').length,
+                        chat_buttons: document.querySelectorAll('[class*="SearchPanelitemchat_btn"]').length,
+                        conversation_rows: document.querySelectorAll('[data-e2e="conversation-item"], [class*="conversationConversationItem"], [class*="ConversationItem"]').length,
+                        matching_title_nodes: matched.length,
+                        visible_matching_titles: matched.filter(el => el.getClientRects().length > 0).length,
+                    };
+                }""", name)
                 LOGGER.warning("好友搜索安全诊断（仅元素数量）: %s", counts)
             except Exception:
                 LOGGER.warning("好友搜索安全诊断无法读取")
