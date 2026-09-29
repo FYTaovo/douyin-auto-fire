@@ -71,6 +71,14 @@ class DouyinChat:
                     const buttons = Array.from(document.querySelectorAll('[class*="SearchPanelitemchat_btn"]'));
                     const normalize = value => value.trim().replace(/\\s+/g, ' ');
                     const matched = titles.filter(el => normalize(el.textContent || '') === normalize(target));
+                    const matchingSearch = searchTitles.filter(el => normalize(el.textContent || '') === normalize(target));
+                    const classChain = el => {
+                        const chain = [];
+                        for (let node = el, depth = 0; node && depth < 5; node = node.parentElement, depth++) {
+                            chain.push(String(node.className || '').split(/\\s+/).filter(value => value.includes('SearchPanel')).join(' ').slice(0, 90));
+                        }
+                        return chain;
+                    };
                     return {
                         search_rows: document.querySelectorAll('[class*="SearchPanelitembox"], [class*="SearchPanelitem-box"], [class*="SearchPanelitem_box"]').length,
                         search_panel_nodes: document.querySelectorAll('[class*="SearchPanel"]').length,
@@ -78,7 +86,10 @@ class DouyinChat:
                         conversation_rows: document.querySelectorAll('[data-e2e="conversation-item"], [class*="conversationConversationItem"], [class*="ConversationItem"]').length,
                         matching_title_nodes: matched.length,
                         visible_matching_titles: matched.filter(el => el.getClientRects().length > 0).length,
-                        matching_search_titles: searchTitles.filter(el => normalize(el.textContent || '') === normalize(target)).length,
+                        matching_search_titles: matchingSearch.length,
+                        inner_text_exact: matchingSearch.filter(el => normalize(el.innerText || '') === normalize(target)).length,
+                        title_class_chain: matchingSearch.slice(0, 1).map(classChain),
+                        button_class_chain: buttons.slice(0, 1).map(classChain),
                         visible_chat_buttons: buttons.filter(el => el.getClientRects().length > 0).length,
                         filled_search_inputs: Array.from(document.querySelectorAll('input[placeholder*="搜索"]')).filter(el => el.value && el.value.length > 0).length,
                     };
