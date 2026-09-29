@@ -25,6 +25,27 @@ async def test_search_failure_raises_without_page_text_or_real_name(monkeypatch)
     assert "张三" not in message
 
 
+@pytest.mark.asyncio
+async def test_search_uses_short_query_but_requires_exact_result(monkeypatch) -> None:
+    page = MagicMock()
+    page.wait_for_timeout = AsyncMock()
+    search = MagicMock()
+    search.click = AsyncMock()
+    search.fill = AsyncMock()
+    button = MagicMock()
+    button.click = AsyncMock()
+    monkeypatch.setattr("app.douyin.first_visible", AsyncMock(return_value=search))
+    chat = DouyinChat(page)
+    chat._search_result = AsyncMock(side_effect=[None, button])
+    chat._confirm_opened = AsyncMock()
+
+    await chat._open_target_once("花流水")
+
+    assert [call.args[0] for call in search.fill.await_args_list] == ["", "花流水", "", "花流"]
+    assert [call.args[0] for call in chat._search_result.await_args_list] == ["花流水", "花流水"]
+    button.click.assert_awaited_once_with(force=True)
+
+
 def _locator_group(items: list[MagicMock]) -> MagicMock:
     group = MagicMock()
     group.count = AsyncMock(return_value=len(items))

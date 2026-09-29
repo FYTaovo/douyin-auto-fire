@@ -44,12 +44,23 @@ class DouyinChat:
 
     async def _open_target_once(self, name: str) -> None:
         search = await first_visible(self.page, SEARCH_INPUTS, self.timeout_ms)
-        await search.click()
-        await search.fill("")
-        await search.fill(name)
-        await self.page.wait_for_timeout(1_500)
-
-        result = await self._search_result(name)
+        # A shorter query helps when Douyin rejects a full nickname containing
+        # punctuation. The recipient check below still requires an exact name.
+        queries = [name]
+        prefix = name.split("(", 1)[0].strip()
+        if prefix == name:
+            prefix = name[:2]
+        if len(prefix) >= 2 and prefix != name:
+            queries.append(prefix)
+        result = None
+        for query in queries:
+            await search.click()
+            await search.fill("")
+            await search.fill(query)
+            await self.page.wait_for_timeout(2_000)
+            result = await self._search_result(name)
+            if result is not None:
+                break
         if result is None:
             # Counts only: never place the friend name, page text or chat content
             # in logs from a public GitHub Actions repository.
@@ -65,6 +76,7 @@ class DouyinChat:
                         conversation_rows: document.querySelectorAll('[data-e2e="conversation-item"], [class*="conversationConversationItem"], [class*="ConversationItem"]').length,
                         matching_title_nodes: matched.length,
                         visible_matching_titles: matched.filter(el => el.getClientRects().length > 0).length,
+                        filled_search_inputs: Array.from(document.querySelectorAll('input[placeholder*="搜索"]')).filter(el => el.value && el.value.length > 0).length,
                     };
                 }""", name)
                 LOGGER.warning("好友搜索安全诊断（仅元素数量）: %s", counts)
